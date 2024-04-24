@@ -23,7 +23,7 @@
     <option value="Almoço">Almoço</option>
     <option value="Segunda Pausa">Segunda Pausa</option>
 </select>
-<button onclick="registrarPausa()">Registrar</button>
+<button id="registrarButton">Registrar</button>
 <button onclick="exportarRegistros()">Exportar para Excel</button>
 <h2>Últimos Registros:</h2>
 <ul id="registros">
@@ -113,5 +113,6 @@ const firebaseConfig = {
     }
    }
 </script>
+    <script>document.getElementById('registrarButton').addEventListener('click', registrarPausa);</script>
 </body>
 </html>
