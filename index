@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Registro de Pausas</title>
 <style>
-        .red {
-            color: red;
-        }
+    .red {
+        color: red;
+    }
 </style>
 </head>
 <body>
@@ -17,11 +17,11 @@
 
 <label for="tipo">Selecione o tipo de pausa:</label>
 <select name="tipo" id="tipo">
-<option value="Entrada">Entrada</option>
-<option value="Saída">Saída</option>
-<option value="Pausa">Pausa</option>
-<option value="Almoço">Almoço</option>
-<option value="Segunda Pausa">Segunda Pausa</option>
+    <option value="Entrada">Entrada</option>
+    <option value="Saída">Saída</option>
+    <option value="Pausa">Pausa</option>
+    <option value="Almoço">Almoço</option>
+    <option value="Segunda Pausa">Segunda Pausa</option>
 </select>
 <button onclick="registrarPausa()">Registrar</button>
 <button onclick="exportarRegistros()">Exportar para Excel</button>
@@ -29,9 +29,25 @@
 <ul id="registros">
 </ul>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.0/xlsx.full.min.js"></script>
+<!-- Firebase JavaScript SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js"></script>
+
 <script>
-    var registros = [];
+  // Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAIc50N2xCKI3cFKU-QyHfq8FbjHPm9Bxo",
+  authDomain: "svfhoras.firebaseapp.com",
+  projectId: "svfhoras",
+  storageBucket: "svfhoras.appspot.com",
+  messagingSenderId: "991583766282",
+  appId: "1:991583766282:web:1d06d15541967bc3c61cf3"
+};
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    var database = firebase.database();
+
+    var registros = JSON.parse(localStorage.getItem('registros')) || [];
 
     function registrarPausa() {
         var nome = document.getElementById('nome').value;
@@ -60,29 +76,30 @@
         novoRegistro.textContent = nome + ' - ' + tipo + ' - ' + horaRegistro.toLocaleString();
         novoRegistro.style.color = cor;
         listaRegistros.appendChild(novoRegistro);
+
+        // Save records to local storage
+        localStorage.setItem('registros', JSON.stringify(registros));
+
+        // Add record to Firebase Realtime Database
+        var recordRef = database.ref('records').push();
+        recordRef.set({
+            nome: nome,
+            tipo: tipo,
+            hora: horaRegistro.getTime() // Store timestamp for sorting
+        });
     }
 
     function exportarRegistros() {
-        // Filtrar registros dos últimos 60 dias
-        var dataLimite = new Date();
-        dataLimite.setDate(dataLimite.getDate() - 60);
-        var registrosFiltrados = registros.filter(function(registro) {
-            return registro.hora >= dataLimite;
-        });
-
-        // Criar um objeto de dados para o Excel
-        var data = [['Nome do Funcionário', 'Tipo de Pausa', 'Data e Hora']];
-        registrosFiltrados.forEach(function(registro) {
-            data.push([registro.nome, registro.tipo, registro.hora.toLocaleString()]);
-        });
-
-        // Criar um objeto de planilha Excel
-        var wb = XLSX.utils.book_new();
-        var ws = XLSX.utils.aoa_to_sheet(data);
-        XLSX.utils.book_append_sheet(wb, ws, 'Registros');
-
-        // Salvar o arquivo Excel
-        XLSX.writeFile(wb, 'registros_ultimos_60_dias.xlsx');
+        // Convert records to JSON string and download as a file
+        var jsonData = JSON.stringify(registros, null, 2);
+        var blob = new Blob([jsonData], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'registros.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 </script>
 </body>
