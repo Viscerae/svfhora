@@ -89,18 +89,29 @@ const firebaseConfig = {
         });
     }
 
-    function exportarRegistros() {
-        // Convert records to JSON string and download as a file
-        var jsonData = JSON.stringify(registros, null, 2);
-        var blob = new Blob([jsonData], { type: 'application/json' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'registros.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+   function exportarRegistros() {
+        // Convert records to CSV format
+        var csvContent = "data:text/csv;charset=utf-8,";
+        registros.forEach(function(record) {
+            var row = record.nome + ',' + record.tipo + ',' + new Date(record.hora).toLocaleString() + '\n';
+            csvContent += row;
+        });
+
+        // Create a Blob object with CSV data
+        var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        // Create a temporary anchor element and trigger a download
+        var link = document.createElement("a");
+        if (link.download !== undefined) { // feature detection
+            var url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "registros.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
     }
+   }
 </script>
 </body>
 </html>
