@@ -1,118 +1,204 @@
+[14:40] José Janyel Rodrigues Soares
 <!DOCTYPE html>
+
 <html lang="pt-br">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registro de Pausas</title>
-<style>
-    .red {
-        color: red;
-    }
-</style>
-</head>
-<body>
-<h1>Registro de Pausas</h1>
-<label for="nome">Nome do Funcionário:</label>
-<input type="text" id="nome" name="nome"><br>
 
-<label for="tipo">Selecione o tipo de pausa:</label>
-<select name="tipo" id="tipo">
-    <option value="Entrada">Entrada</option>
-    <option value="Saída">Saída</option>
-    <option value="Pausa">Pausa</option>
-    <option value="Almoço">Almoço</option>
-    <option value="Segunda Pausa">Segunda Pausa</option>
-</select>
-<button id="registrarButton">Registrar</button>
-<button onclick="exportarRegistros()">Exportar para Excel</button>
-<h2>Últimos Registros:</h2>
-<ul id="registros">
-</ul>
+    <meta charset="UTF-8">
 
-<!-- Firebase JavaScript SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script>
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAIc50N2xCKI3cFKU-QyHfq8FbjHPm9Bxo",
-  authDomain: "svfhoras.firebaseapp.com",
-  projectId: "svfhoras",
-  storageBucket: "svfhoras.appspot.com",
-  messagingSenderId: "991583766282",
-  appId: "1:991583766282:web:1d06d15541967bc3c61cf3"
-};
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    var database = firebase.database();
+    <title>Registro de Pausas</title>
 
-    var registros = JSON.parse(localStorage.getItem('registros')) || [];
+    <style>
 
-    function registrarPausa() {
-        var nome = document.getElementById('nome').value;
-        var tipo = document.getElementById('tipo').value;
-        var horaRegistro = new Date();
-        var cor = '';
+        .red {
 
-        if (tipo === 'Pausa') {
-            var ultimoRegistro = registros.length > 0 ? registros[registros.length - 1] : null;
-            if (ultimoRegistro && horaRegistro - ultimoRegistro.hora > 15 * 60 * 1000) {
-                cor = 'red';
-            }
-        } else if (tipo === 'Almoço') {
-            var ultimoRegistro = registros.find(function(registro) {
-                return registro.tipo === 'Pausa';
-            });
-            if (ultimoRegistro && horaRegistro - ultimoRegistro.hora > 60 * 60 * 1000) {
-                cor = 'red';
-            }
+            color: red;
+
         }
 
-        registros.push({ nome: nome, tipo: tipo, hora: horaRegistro });
+        .blue {
 
-        var listaRegistros = document.getElementById('registros');
-        var novoRegistro = document.createElement('li');
-        novoRegistro.textContent = nome + ' - ' + tipo + ' - ' + horaRegistro.toLocaleString();
-        novoRegistro.style.color = cor;
-        listaRegistros.appendChild(novoRegistro);
+            color: blue;
 
-        // Save records to local storage
-        localStorage.setItem('registros', JSON.stringify(registros));
+        }
 
-        // Add record to Firebase Realtime Database
-        var recordRef = database.ref('records').push();
-        recordRef.set({
-            nome: nome,
-            tipo: tipo,
-            hora: horaRegistro.getTime() // Store timestamp for sorting
-        });
-    }
+    </style>
 
-   function exportarRegistros() {
-        // Convert records to CSV format
-        var csvContent = "data:text/csv;charset=utf-8,";
-        registros.forEach(function(record) {
-            var row = record.nome + ',' + record.tipo + ',' + new Date(record.hora).toLocaleString() + '\n';
-            csvContent += row;
-        });
+</head>
 
-        // Create a Blob object with CSV data
-        var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+<body>
 
-        // Create a temporary anchor element and trigger a download
-        var link = document.createElement("a");
-        if (link.download !== undefined) { // feature detection
-            var url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", "registros.csv");
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
+    <h1>Registro de Pausas</h1>
+
+    <label for="nome">Nome do Agente:</label>
+
+    <input type="text" id="nome" placeholder="Digite seu nome">
+
+    <label for="tipo">Selecione o tipo de pausa:</label>
+
+    <select name="tipo" id="tipo">
+
+        <option value="Primeira Pausa">Primeira Pausa</option>
+
+        <option value="Almoço">Almoço</option>
+
+        <option value="Segunda Pausa">Segunda Pausa</option>
+
+    </select>
+
+    <button onclick="iniciarPausa()">Iniciar Pausa</button>
+
+    <button onclick="finalizarPausa()">Finalizar Pausa</button>
+
+    <button onclick="exportarParaExcel()">Exportar para Excel</button>
+
+    <h2>Últimos Registros:</h2>
+
+    <ul id="registros">
+
+    </ul>
+ 
+    <script>
+
+        var registros = JSON.parse(localStorage.getItem('registros')) || [];
+
+        var cronometroInicio;
+
+        var cronometroFim;
+
+        var tipoPausaAtual;
+ 
+        function iniciarPausa() {
+
+            var nome = document.getElementById('nome').value;
+
+            var tipo = document.getElementById('tipo').value;
+
+            tipoPausaAtual = tipo;
+
+            cronometroInicio = new Date();
+
+            cronometroFim = null;
+ 
+            var listaRegistros = document.getElementById('registros');
+
+            var novoRegistro = document.createElement('li');
+
+            novoRegistro.textContent = nome + ' - ' + tipo + ' - ' + cronometroInicio.toLocaleString();
+
+            listaRegistros.appendChild(novoRegistro);
+
+        }
+ 
+        function finalizarPausa() {
+
+            if (cronometroInicio) {
+
+                cronometroFim = new Date();
+
+                var diferencaTempo = (cronometroFim - cronometroInicio) / 1000 / 60; // Diferença de tempo em minutos
+
+                var cor = '';
+
+                if (tipoPausaAtual === 'Primeira Pausa' || tipoPausaAtual === 'Segunda Pausa') {
+
+                    if (diferencaTempo > 15) {
+
+                        cor = 'red';
+
+                    } else {
+
+                        cor = 'blue';
+
+                    }
+
+                } else if (tipoPausaAtual === 'Almoço') {
+
+                    if (diferencaTempo > 60) {
+
+                        cor = 'red';
+
+                    } else {
+
+                        cor = 'blue';
+
+                    }
+
+                }
+ 
+                var listaRegistros = document.getElementById('registros');
+
+                var ultimoRegistro = listaRegistros.lastChild;
+
+                ultimoRegistro.textContent += ' - ' + cronometroFim.toLocaleTimeString() + (cor === 'red' ? ' (Excedeu o tempo)' : '');
+
+                ultimoRegistro.className = cor;
+ 
+                registros.push({ nome: document.getElementById('nome').value, tipo: tipoPausaAtual, inicio: cronometroInicio, fim: cronometroFim });
+ 
+                // Atualiza os registros no armazenamento local
+
+                localStorage.setItem('registros', JSON.stringify(registros));
+
+            } else {
+
+                alert('Você deve iniciar uma pausa antes de finalizá-la.');
+
+            }
+
+        }
+ 
+        function exportarParaExcel() {
+
+            var data = [['Nome do Agente', 'Tipo de Pausa', 'Início', 'Fim']];
+
+            registros.forEach(function(registro) {
+
+                var dataRegistro = [
+
+                    registro.nome,
+
+                    registro.tipo,
+
+                    registro.inicio.toLocaleString(),
+
+                    registro.fim.toLocaleString()
+
+                ];
+
+                data.push(dataRegistro);
+
+            });
+ 
+            var csvContent = 'data:text/csv;charset=utf-8,';
+
+            data.forEach(function(rowArray){
+
+                var row = rowArray.join(',');
+
+                csvContent += row + '\r\n';
+
+            });
+ 
+            var encodedUri = encodeURI(csvContent);
+
+            var link = document.createElement('a');
+
+            link.setAttribute('href', encodedUri);
+
+            link.setAttribute('download', 'registros_pausas.csv');
+
+            document.body.appendChild(link); // Required for FF
+ 
             link.click();
-            document.body.removeChild(link);
-    }
-   }
-</script>
-    <script>document.getElementById('registrarButton').addEventListener('click', registrarPausa);</script>
+
+        }
+
+    </script>
+
 </body>
+
 </html>
