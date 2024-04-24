@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Pausas</title>
+<style>
+        .red {
+            color: red;
+        }
+</style>
+</head>
+<body>
+<h1>Registro de Pausas</h1>
+<label for="nome">Nome do Funcionário:</label>
+<input type="text" id="nome" name="nome"><br>
+
+<label for="tipo">Selecione o tipo de pausa:</label>
+<select name="tipo" id="tipo">
+<option value="Entrada">Entrada</option>
+<option value="Saída">Saída</option>
+<option value="Pausa">Pausa</option>
+<option value="Almoço">Almoço</option>
+<option value="Segunda Pausa">Segunda Pausa</option>
+</select>
+<button onclick="registrarPausa()">Registrar</button>
+<button onclick="exportarRegistros()">Exportar para Excel</button>
+<h2>Últimos Registros:</h2>
+<ul id="registros">
+</ul>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.0/xlsx.full.min.js"></script>
+<script>
+    var registros = [];
+
+    function registrarPausa() {
+        var nome = document.getElementById('nome').value;
+        var tipo = document.getElementById('tipo').value;
+        var horaRegistro = new Date();
+        var cor = '';
+
+        if (tipo === 'Pausa') {
+            var ultimoRegistro = registros.length > 0 ? registros[registros.length - 1] : null;
+            if (ultimoRegistro && horaRegistro - ultimoRegistro.hora > 15 * 60 * 1000) {
+                cor = 'red';
+            }
+        } else if (tipo === 'Almoço') {
+            var ultimoRegistro = registros.find(function(registro) {
+                return registro.tipo === 'Pausa';
+            });
+            if (ultimoRegistro && horaRegistro - ultimoRegistro.hora > 60 * 60 * 1000) {
+                cor = 'red';
+            }
+        }
+
+        registros.push({ nome: nome, tipo: tipo, hora: horaRegistro });
+
+        var listaRegistros = document.getElementById('registros');
+        var novoRegistro = document.createElement('li');
+        novoRegistro.textContent = nome + ' - ' + tipo + ' - ' + horaRegistro.toLocaleString();
+        novoRegistro.style.color = cor;
+        listaRegistros.appendChild(novoRegistro);
+    }
+
+    function exportarRegistros() {
+        // Filtrar registros dos últimos 60 dias
+        var dataLimite = new Date();
+        dataLimite.setDate(dataLimite.getDate() - 60);
+        var registrosFiltrados = registros.filter(function(registro) {
+            return registro.hora >= dataLimite;
+        });
+
+        // Criar um objeto de dados para o Excel
+        var data = [['Nome do Funcionário', 'Tipo de Pausa', 'Data e Hora']];
+        registrosFiltrados.forEach(function(registro) {
+            data.push([registro.nome, registro.tipo, registro.hora.toLocaleString()]);
+        });
+
+        // Criar um objeto de planilha Excel
+        var wb = XLSX.utils.book_new();
+        var ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+
+        // Salvar o arquivo Excel
+        XLSX.writeFile(wb, 'registros_ultimos_60_dias.xlsx');
+    }
+</script>
+</body>
+</html>
